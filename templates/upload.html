@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload PDF and Generate Quiz</title>
+    
+    <style>
+        body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    color: #374151;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+header {
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 5px solid #2563eb;
+}
+
+header h1 {
+    font-size: 28px;
+    margin: 0;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    padding: 30px 10%;
+}
+
+.section {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.section:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.section h2 {
+    color: #2563eb;
+    font-size: 22px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #3b82f6;
+    padding-bottom: 5px;
+}
+
+label, select, button, input {
+    font-size: 16px;
+    margin-bottom: 15px;
+}
+
+input[type="file"], .select-container select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    background-color: #f9fafb;
+    transition: border-color 0.3s;
+}
+
+input[type="file"]:focus, .select-container select:focus {
+    border-color: #3b82f6;
+    outline: none;
+}
+
+button {
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+button:hover {
+    background: linear-gradient(90deg, #2563eb, #4f46e5);
+    transform: scale(1.05);
+}
+
+.quiz-container {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f9fafb;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.quiz-container h3 {
+    margin-bottom: 10px;
+    color: #3b82f6;
+    font-size: 18px;
+}
+
+.options li {
+    margin: 8px 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.footer {
+    text-align: center;
+    padding: 15px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    color: #fff;
+    font-size: 14px;
+    border-top: 5px solid #2563eb;
+}
+.extracted-container {
+    margin: 20px auto;
+    padding: 20px;
+    max-width: 600px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.extracted-container h3 {
+    text-align: center;
+    color: #333;
+    font-size: 1.5em;
+    margin-bottom: 20px;
+}
+
+.extracted-container pre {
+    font-family: Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    color: #555;
+}
+
+.extracted-container .segmentation-list {
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.extracted-container .segmentation-list li {
+    margin: 5px 0;
+    padding: 10px;
+    background-color: #e6f7ff;
+    border: 1px solid #b3d8ff;
+    border-radius: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.extracted-container .segmentation-list li:nth-child(odd) {
+    background-color: #f0f9ff;
+}
+.feedback {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #e0f7fa;
+    border-left: 4px solid #00796b;
+    font-size: 14px;
+    color: #004d40;
+}
+.feedback1 {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f5bca7;
+    border-left: 4px solid #e43333;
+    font-size: 14px;
+    color: #d23b3b;
+}
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>PDF Upload and Quiz Generation</h1>
+    </header>
+
+    <div class="container">
+        <!-- PDF Upload Section -->
+        <div class="section">
+            <h2>Upload PDF and Extract Segmentation</h2>
+            {% if error %}
+                <p style="color: red;">{{ error }}</p>
+            {% endif %}
+
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <label for="file">Select PDF:</label>
+                <input type="file" name="file" id="file" accept="application/pdf">
+                <button type="submit">Upload</button>
+            </form>
+
+            {% if extracted_text %}
+    <div class="extracted-container">
+        <h3>Extracted Text: {{ extracted_text['courseName'] }}</h3>
+        
+        <ul class="segmentation-list">
+            Segmentation Title:
+            {% for sous_titre in extracted_text['segmentation_titres'] %}
+                <li>{{ loop.index }}. {{ sous_titre.Segmentationtitle }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+        </div>
+
+        <!-- Quiz Generation Section -->
+        <div class="section">
+            <h2>Generate Quiz</h2>
+            {% if extracted_text %}
+                <div class="select-container">
+                    <label for="segmentation_select">Select Segmentation Title for Quiz:</label>
+                    <select id="segmentation_select" name="segmentation_title">
+                        {% for sous_titre in extracted_text['segmentation_titres'] %}
+                            <option value="{{ sous_titre }}">{{ sous_titre.Segmentationtitle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button id="generate_quiz_btn">Generate Quiz</button>
+                
+
+                <div class="quiz-container" id="quiz-container">
+                    <h3>Quiz Title: <span id="quiz-title"></span></h3>
+                    <div id="quiz-questions"></div>
+                </div>
+                <button id="finish_quiz_btn" style="display:none; margin-top:10px;">Finish Quiz</button>
+                <button id="generate-explication-btn" style="display:none; margin-top:10px;">Generate Explanation</button>
+                        <!-- Generated Explanation Section -->
+                <div class="section" id="explication-section" style="display:none; ">
+                    <h2>Generated Explanation</h2>
+                    <p id="generated-explication"></p>
+                </div>
+            {% else %}
+                <p>Please upload a PDF first to extract the segmentation titles.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="footer">
+        &copy; 2024 Quiz Generator. All rights reserved.
+    </div>
+
+    <script>
+        document.getElementById("generate_quiz_btn")?.addEventListener("click", function () {
+            const selectedSegmentation = document.getElementById("segmentation_select").value;
+            document.getElementById("explication-section").style.display = "none";
+            // Show loading feedback
+            const generateQuizBtn = document.getElementById("generate_quiz_btn");
+            generateQuizBtn.disabled = true;
+            generateQuizBtn.innerText = "Generating...";
+    
+            fetch('/generate-quiz-ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    segmentation_title: selectedSegmentation
+                })
+            })
+                .then(response => {
+                    generateQuizBtn.disabled = false;
+                    generateQuizBtn.innerText = "Generate Quiz";
+    
+                    if (!response.ok) {
+                        throw new Error("Server error. Please try again later.");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert("Error generating quiz: " + data.error);
+                        return;
+                    }
+    
+                    // Update quiz container
+                    const quizContainer = document.getElementById('quiz-container');
+                    quizContainer.style.display = 'block';
+                    document.getElementById('quiz-title').innerText = data.title || "Quiz";
+    
+                    const questionsContainer = document.getElementById('quiz-questions');
+                    questionsContainer.innerHTML = '';
+    
+                    if (Array.isArray(data.questions) && data.questions.length > 0) {
+                        data.questions.forEach((question, index) => {
+                            const questionElement = document.createElement('div');
+                            questionElement.classList.add('question');
+                            questionElement.innerHTML = `
+                                <h3>${index + 1}. ${question.questionText || "Question text missing"}</h3>
+                                <ul class="options">
+                                    ${
+                                        Array.isArray(question.options)
+                                            ? question.options.map(option => `
+                                                <li>
+                                                    <input 
+                                                        type="${question.type === 'single-choice' ? 'radio' : 'checkbox'}" 
+                                                        name="question${index}" 
+                                                        value="${option.optionId}" 
+                                                        data-correct="${option.isCorrect}">
+                                                    ${option.optionText}
+                                                </li>
+                                            `).join('')
+                                            : `<li>No options available</li>`
+                                    }
+                                </ul>
+                            `;
+                            questionsContainer.appendChild(questionElement);
+                        });
+                        document.getElementById("finish_quiz_btn").style.display = "block";
+                    } else {
+                        questionsContainer.innerHTML = '<p>No questions available for this segmentation.</p>';
+                    }
+                })
+                .catch(error => {
+                    generateQuizBtn.disabled = false;
+                    generateQuizBtn.innerText = "Generate Quiz";
+                    alert("Error generating quiz: " + error.message);
+                });
+        });
+        let quizScore = 0;
+        document.getElementById("finish_quiz_btn")?.addEventListener("click", function () {
+    const questions = document.querySelectorAll('.question');
+    let correctCount = 0;
+
+    // Loop through all questions
+    questions.forEach(question => {
+        // Remove old feedback (if any)
+        const existingFeedback = question.querySelector('.feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+
+        const options = question.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+        let isCorrect = true;
+        let correctAnswersText = [];
+        let allAnswersCorrect = true;
+
+        // Loop through each option to check if the selected answers are correct
+        options.forEach(option => {
+            const optionText = option.parentElement.textContent.trim();
+            if (option.checked && option.dataset.correct !== "true") {
+                isCorrect = false;
+                allAnswersCorrect = false;
+            }
+            if (!option.checked && option.dataset.correct === "true") {
+                allAnswersCorrect = false;
+            }
+            if (option.dataset.correct === "true") {
+                correctAnswersText.push(optionText); // Capture all correct answer texts
+            }
+        });
+
+        // Create feedback element to show the correct answers
+        const feedbackElement = document.createElement('div');
+        feedbackElement.classList.add('feedback');
+
+        if (!allAnswersCorrect) {
+            feedbackElement.innerHTML = `<strong>Correct Answers:</strong> ${correctAnswersText.join(', ')}`;
+            feedbackElement.classList.add('feedback1');
+        } else {
+            feedbackElement.innerHTML = `<strong>Correct Answers:</strong> ${correctAnswersText.join(', ')}`;
+        }
+
+        // Append the feedback element to the question
+        question.appendChild(feedbackElement);
+
+        // Increment correct count if the answer is correct
+        if (isCorrect) correctCount++;
+    });
+
+    // Calculate the score
+    const score = (correctCount / questions.length) * 100;
+    quizScore = score;
+
+    // Provide an explanation based on the score
+    let explanation = "";
+    if (score <= 30) {
+        explanation = "You scored below 30%. It seems you need to review the material more thoroughly.";
+    } else if (score <= 60) {
+        explanation = "You scored around 60%. You're getting there, but there's room for improvement.";
+    } else if (score <= 80) {
+        explanation = "You scored up to 80%. Good effort, but you can aim higher!";
+    } else if (score === 100) {
+        explanation = "You scored 100%. Excellent work! You've mastered this material.";
+    }
+
+    // Create the QuizResult instance and pass it to the backend
+    const quizResult = {
+        quiz_title: "quiz title",  // Set this dynamically based on your data
+        total_questions: questions.length,
+        correct_answers: correctCount,
+        score: score,
+        feedback: explanation
+    };
+
+    // Send this data to the backend if needed
+    fetch('/submit-quiz-result', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(quizResult)
+    })
+        .then(response => response.json())
+        .then(data => {
+            alert("Quiz result saved successfully!");
+        })
+        .catch(error => {
+            alert("Error saving quiz result: " + error.message);
+        });
+
+    // Display the final score and explanation in an alert
+    alert(`Quiz Results: ${score.toFixed(2)}%\nExplanation: ${explanation}\nCorrect Answers: ${correctCount}\nIncorrect Answers: ${questions.length - correctCount}`);
+
+    // Display the button for generating explanations
+    const generateBtn = document.getElementById("generate-explication-btn");
+    if (generateBtn) {
+        generateBtn.style.display = "block";
+    }
+});
+        document.getElementById("generate-explication-btn")?.addEventListener("click", function () {
+    const selectedSegmentation = document.getElementById("segmentation_select")?.value;
+    if (!selectedSegmentation) {
+        alert("Please select a segmentation.");
+        return;
+    }
+
+    const generateExplicationBtn = document.getElementById("generate-explication-btn");
+    generateExplicationBtn.disabled = true;
+    generateExplicationBtn.innerText = "Generating Exp...";
+
+    const requestBody = {
+        segmentation_title: selectedSegmentation ,
+        score: quizScore
+    };
+
+    fetch("/generate-explication-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+    })
+    .then(response => response.json())
+    .then(data => {
+        generateExplicationBtn.disabled = false;
+        generateExplicationBtn.innerText = "Generate Explanation";
+
+        if (data.error) {
+            alert("Error generating explanations: " + data.error);
+            return;
+        }
+
+        const quizSection = document.getElementById("quiz-container");
+        quizSection.style.display = "none";
+        document.getElementById("finish_quiz_btn").style.display = "none";
+        generateExplicationBtn.style.display = "none";
+        const explicationSection = document.getElementById("explication-section");
+        explicationSection.style.display = "block";
+
+        const explanationParagraph = document.getElementById("generated-explication");
+
+        // Clear any previous content
+        explanationParagraph.innerHTML = "";
+
+        // Assuming `data.explanation` is a string with paragraphs separated by '\n\n'
+        const explanationParts = data.explanation.split('\n\n');
+
+        // Add structured content
+        explanationParts.forEach((part, index) => {
+
+            const paragraph = document.createElement('p');
+            paragraph.textContent = part.trim();
+            explanationParagraph.appendChild(paragraph);
+        });
+
+    })
+    .catch(error => {
+        generateExplicationBtn.disabled = false;
+        generateExplicationBtn.innerText = "Generate Explanation";
+        alert("Failed to call API: " + error.message);
+    });
+});
+
+    </script>
+    
+</body>
+</html>
